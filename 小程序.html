@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>智能取餐柜 · 校园外卖服务</title>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #1a1a1a;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .phone {
+            width: 375px;
+            height: 700px;
+            background-color: #f8f8f8;
+            border-radius: 44px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .page {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #f8f8f8;
+            overflow-y: auto;
+            transition: opacity 0.2s ease;
+            opacity: 0;
+            visibility: hidden;
+            padding: 20px 16px 70px;
+        }
+        .page.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* 启动页 */
+        #splash {
+            background: linear-gradient(145deg, #07c160 0%, #059e4a 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            opacity: 1;
+            visibility: visible;
+            padding: 20px;
+        }
+        .splash-title {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+        }
+        .splash-sub {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        /* 卡片样式 - 淡化边框 */
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 20px 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+            border: 0.5px solid #f5f5f5;  /* 更淡的边框 */
+        }
+        .btn {
+            background-color: #07c160;
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 40px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            text-align: center;
+        }
+        .btn-outline {
+            background: white;
+            border: 1px solid #07c160;
+            color: #07c160;
+        }
+        /* 胶囊小按钮 - 无边框，浅灰背景 */
+        .btn-capsule {
+            background: #f0f0f0;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 13px;
+            color: #333;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-block;
+        }
+        .btn-capsule:active {
+            background: #e0e0e0;
+        }
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .input-field {
+            border: 1px solid #e0e0e0;
+            border-radius: 30px;
+            padding: 12px 16px;
+            width: 100%;
+            font-size: 15px;
+            margin: 12px 0;
+        }
+        .tag {
+            background: #f2f2f2;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 12px;
+            color: #666;
+        }
+        .grid-status {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin: 12px 0;
+        }
+        .grid-cell {
+            background: #e9e9ef;
+            border-radius: 12px;
+            padding: 8px;
+            text-align: center;
+            font-size: 11px;
+        }
+        .grid-cell.occupied { background: #ffd1d1; color: #c00000; }
+        .grid-cell.free { background: #d9f0e3; color: #07c160; }
+        .grid-cell.overdue { background: #ffe0b3; color: #e67e00; }
+        .record-item {
+            border-bottom: 0.5px solid #f0f0f0;
+            padding: 10px 0;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .text-muted {
+            color: #8e8e93;
+            font-size: 12px;
+        }
+        .mt-2 { margin-top: 8px; }
+        .mb-2 { margin-bottom: 8px; }
+
+        /* 入口卡片 */
+        .entry-card {
+            background: white;
+            border-radius: 28px;
+            padding: 24px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            cursor: pointer;
+        }
+        .entry-icon {
+            font-size: 32px;
+            width: 40px;
+            text-align: center;
+            color: #07c160;
+        }
+        .entry-text { flex: 1; }
+        .entry-title { font-size: 20px; font-weight: 600; }
+        .entry-desc { font-size: 13px; color: #8e8e93; margin-top: 4px; }
+        .arrow { font-size: 20px; color: #c6c6c8; }
+
+        /* 底部导航栏 */
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(255,255,255,0.96);
+            backdrop-filter: blur(10px);
+            border-top: 0.5px solid #e9e9ef;
+            display: none;
+            justify-content: space-around;
+            padding: 8px 0 12px;
+            z-index: 100;
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            color: #8e8e93;
+            cursor: pointer;
+        }
+        .nav-item.active { color: #07c160; }
+        .nav-icon { font-size: 22px; }
+
+        /* 子页面顶部返回按钮 */
+        .back-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .back-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0 8px 0 0;
+            color: #07c160;
+        }
+
+        /* 帮助页面 */
+        .faq-item {
+            border-bottom: 0.5px solid #f0f0f0;
+            padding: 14px 0;
+        }
+        .faq-question {
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+        .faq-answer {
+            font-size: 13px;
+            color: #666;
+            margin-top: 8px;
+            display: none;
+        }
+        .faq-answer.show { display: block; }
+        .ai-chat { margin-top: 20px; border-top: 1px solid #f0f0f0; padding-top: 16px; }
+        .ai-response { background: #f5f5f5; border-radius: 16px; padding: 12px; margin-top: 12px; font-size: 14px; }
+
+        /* 个人中心 */
+        .profile-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+        .avatar-wrapper {
+            position: relative;
+            margin-bottom: 12px;
+        }
+        .avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: #07c160;
+            cursor: pointer;
+            transition: 0.2s;
+            overflow: hidden;
+        }
+        .avatar i {
+            font-size: 48px;
+        }
+        .nickname {
+            font-size: 20px;
+            font-weight: 500;
+            color: #333;
+            cursor: pointer;
+            padding: 4px 12px;
+            border-radius: 30px;
+            background: #f0f0f0;
+            display: inline-block;
+        }
+        .bind-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 0.5px solid #f0f0f0;
+        }
+        .bind-label { font-weight: 500; }
+        .bind-status { color: #07c160; }
+        .btn-link {
+            background: none;
+            border: none;
+            color: #07c160;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+        /* 退出登录容器 - 居中 */
+        .logout-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 16px;
+        }
+        .btn-logout {
+            background: #f0f0f0;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 40px;
+            font-size: 16px;
+            color: #333;
+            cursor: pointer;
+            width: auto;
+        }
+
+        /* 首页底部链接 */
+        .footer-links {
+            margin: 20px 0 10px;
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            font-size: 14px;
+            color: #8e8e93;
+        }
+        .footer-link {
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        /* 模态框（授权界面） */
+        .modal-mask {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-container {
+            width: 280px;
+            background: white;
+            border-radius: 32px;
+            padding: 24px;
+            text-align: center;
+        }
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .modal-desc {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 24px;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+        }
+        .modal-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 30px;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .modal-btn.cancel {
+            background: #f0f0f0;
+            color: #333;
+        }
+        .modal-btn.confirm {
+            background: #07c160;
+            color: white;
+        }
+
+        /* 头像选择器浮层 */
+        .avatar-picker {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: white;
+            border-radius: 28px 28px 0 0;
+            padding: 20px;
+            z-index: 250;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+        }
+        .avatar-picker.show {
+            transform: translateY(0);
+        }
+        .avatar-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .avatar-option {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: #07c160;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .avatar-option:hover {
+            background: #e0e0e0;
+        }
+        .picker-close {
+            text-align: center;
+            margin-top: 16px;
+            padding: 12px;
+            color: #07c160;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .toast-message {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.75);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-size: 14px;
+            z-index: 300;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+<div class="phone">
+    <!-- 启动页 -->
+    <div id="splash" class="page active">
+        <div class="splash-title">欢迎使用</div>
+        <div class="splash-title" style="font-size: 32px;">智能取餐柜</div>
+        <div class="splash-sub">校园外卖 · 即刻取餐</div>
+    </div>
+
+    <!-- 首页 -->
+    <div id="home" class="page">
+        <div style="margin-bottom: 24px;">
+            <h2 style="font-size: 28px; font-weight: 700;" id="greetingName">你好，游客</h2>
+            <p class="text-muted" id="userIdentityTag">请登录后认证身份</p>
+        </div>
+        <div id="entryContainer"></div>
+        <div class="footer-links">
+            <span class="footer-link" id="callSupport"><i class="fas fa-phone-alt"></i> 投诉电话</span>
+            <span class="footer-link" id="goToHelp"><i class="fas fa-question-circle"></i> 帮助</span>
+        </div>
+    </div>
+
+    <!-- 取餐页面 -->
+    <div id="take" class="page">
+        <div class="back-header"><button class="back-btn" id="backHomeFromTake"><i class="fas fa-arrow-left"></i></button><span style="font-weight: 500;">取餐</span></div>
+        <div class="card" style="background: #eef5ff;">
+            <div style="font-weight: 500;"><i class="fas fa-qrcode"></i> 扫码取餐</div>
+            <button class="btn" style="margin-top: 12px;" id="takeScanBtn"><i class="fas fa-camera"></i> 模拟扫码取餐</button>
+        </div>
+        <div class="card">
+            <div class="flex-between"><span><i class="fas fa-box"></i> 当前待取订单</span><span class="tag">格子 A-03</span></div>
+            <div class="mt-2"><strong>川香麻辣烫 · 烤鸭饭</strong></div>
+            <div class="text-muted">取餐码：<span style="color:#07c160;">482736</span></div>
+            <div class="text-muted">存入 12:05 · 剩余免费 1h23m</div>
+            <button class="btn btn-outline" style="margin-top: 12px;" id="takeCodeOpen"><i class="fas fa-key"></i> 使用取餐码开柜</button>
+        </div>
+        <div class="card">
+            <div class="flex-between"><span><i class="fas fa-history"></i> 历史订单</span><span class="tag">近3条</span></div>
+            <div class="record-item">螺蛳粉 · 已取餐 04-17 12:30</div>
+            <div class="record-item">一点点奶茶 · 已取餐 04-16 18:15</div>
+            <div class="record-item">必胜客披萨 · 已取餐 04-15 12:05</div>
+        </div>
+        <div class="card">
+            <div class="flex-between"><span><i class="fas fa-star"></i> 信用分</span><span style="color:#ff9f00;">98</span></div>
+            <div style="background:#e9e9ef; border-radius: 10px; height: 6px; margin: 8px 0;"><div style="width:98%; background:#07c160; height:6px; border-radius:10px;"></div></div>
+            <div class="text-muted">超时取餐 -5分 · 错拿 -20分</div>
+        </div>
+    </div>
+
+    <!-- 放餐页面 -->
+    <div id="place" class="page">
+        <div class="back-header"><button class="back-btn" id="backHomeFromPlace"><i class="fas fa-arrow-left"></i></button><span style="font-weight: 500;">放餐</span></div>
+        <div class="card">
+            <div style="font-weight: 500;"><i class="fas fa-motorcycle"></i> 外卖员放餐</div>
+            <button class="btn btn-outline" style="margin: 12px 0;" id="placeLoginBtn"><i class="fas fa-sign-in-alt"></i> 模拟扫码登录</button>
+            <div id="placeLoginStatus" class="text-muted">未登录</div>
+        </div>
+        <div class="card" id="placePutCard" style="opacity:0.6; pointer-events:none;">
+            <div><i class="fas fa-box-open"></i> 放餐操作</div>
+            <input type="text" id="placePhoneInput" class="input-field" placeholder="用户手机尾号(4位)" maxlength="4">
+            <button class="btn" id="placePutBtn"><i class="fas fa-door-open"></i> 分配格子并开门</button>
+            <div id="placeResult" class="text-muted mt-2"></div>
+        </div>
+        <div class="card">
+            <div class="flex-between"><span><i class="fas fa-list"></i> 今日放餐记录</span><span class="tag">已放12单</span></div>
+            <div class="record-item">12:20 尾号3462 → A-03</div>
+            <div class="record-item">12:15 尾号5721 → B-07</div>
+            <div class="record-item">12:08 尾号8934 → C-02</div>
+        </div>
+    </div>
+
+    <!-- 管理员页面 - 使用胶囊按钮 -->
+    <div id="admin" class="page">
+        <div class="back-header"><button class="back-btn" id="backHomeFromAdmin"><i class="fas fa-arrow-left"></i></button><span style="font-weight: 500;">管理</span></div>
+        <div class="card">
+            <div class="flex-between"><span><i class="fas fa-th"></i> 格子占用</span><span class="tag">实时</span></div>
+            <div class="grid-status" id="gridStatus"></div>
+            <div class="flex-between text-muted"><span><i class="fas fa-circle" style="color:#07c160;"></i> 空闲</span><span><i class="fas fa-circle" style="color:#c00000;"></i> 占用</span><span><i class="fas fa-circle" style="color:#e67e00;"></i> 超时</span></div>
+        </div>
+        <div class="card">
+            <div class="flex-between"><span><i class="fas fa-clock"></i> 超时订单</span><span class="tag">2笔</span></div>
+            <div class="record-item">格子 B-07 · 尾号5721 · 已超3h <button class="btn-capsule" id="forceOpenB7">强制开门</button></div>
+            <div class="record-item">格子 D-11 · 尾号2356 · 已超2.5h <button class="btn-capsule" id="forceOpenD11">强制开门</button></div>
+        </div>
+        <div class="card">
+            <div class="flex-between"><span><i class="fas fa-camera"></i> 异常记录</span><button class="btn-capsule" id="viewRecordsBtn">查看详情</button></div>
+            <div id="recordList" class="mt-2"><div class="record-item">14:23 格子A-03 输错密码3次</div><div class="record-item">13:50 格子C-09 门未关好报警</div></div>
+        </div>
+        <div class="card">
+            <div class="flex-between"><span><i class="fas fa-broom"></i> 清洁管理</span><button class="btn-capsule" id="cleanMarkBtn">标记已清洁</button></div>
+            <div class="text-muted mt-2">今日需清洁：A-05, B-12, C-03</div>
+        </div>
+    </div>
+
+    <!-- 帮助页面 -->
+    <div id="help" class="page">
+        <div class="back-header"><button class="back-btn" id="backHomeFromHelp"><i class="fas fa-arrow-left"></i></button><span style="font-weight: 500;">帮助</span></div>
+        <div class="card">
+            <div style="font-weight: 600;"><i class="fas fa-question-circle"></i> 常见问题</div>
+            <div class="faq-item"><div class="faq-question" data-answer="ans1">如何获取取餐码？ <span>▼</span></div><div id="ans1" class="faq-answer">下单后系统生成6位码，短信/APP通知。</div></div>
+            <div class="faq-item"><div class="faq-question" data-answer="ans2">存放多久？ <span>▼</span></div><div id="ans2" class="faq-answer">免费2小时，超时1元/小时，4小时取出。</div></div>
+            <div class="faq-item"><div class="faq-question" data-answer="ans3">输错码？ <span>▼</span></div><div id="ans3" class="faq-answer">连续3次锁柜5分钟，联系管理员。</div></div>
+            <div class="faq-item"><div class="faq-question" data-answer="ans4">拿错外卖？ <span>▼</span></div><div id="ans4" class="faq-answer">立即拨打投诉电话，调取监控。</div></div>
+            <div class="faq-item"><div class="faq-question" data-answer="ans5">信用分？ <span>▼</span></div><div id="ans5" class="faq-answer">低于60分需押金，高分有优惠券。</div></div>
+            <div class="ai-chat">
+                <div style="font-weight:500;"><i class="fas fa-robot"></i> 智能问答</div>
+                <input type="text" id="userQuestion" class="input-field" placeholder="输入问题，AI将回复">
+                <button class="btn" id="askAI"><i class="fas fa-paper-plane"></i> 提问</button>
+                <div id="aiAnswer" class="ai-response" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 个人中心页面 -->
+    <div id="profile" class="page">
+        <div class="profile-header">
+            <div class="avatar-wrapper">
+                <div class="avatar" id="avatarBtn">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+            </div>
+            <div class="nickname" id="nicknameDisplay">点击设置昵称</div>
+        </div>
+        <div id="loginSection" class="card">
+            <div style="font-weight:500;"><i class="fas fa-sign-in-alt"></i> 登录/注册</div>
+            <input type="text" id="loginPhone" class="input-field" placeholder="手机号" value="13812345678">
+            <input type="password" id="loginPassword" class="input-field" placeholder="密码" value="123456">
+            <button class="btn" id="doLogin">登录</button>
+            <div class="text-muted mt-2" style="text-align:center;">演示：任意手机号+密码</div>
+        </div>
+        <div id="bindSection" class="card" style="display:none;">
+            <div style="font-weight:500;"><i class="fas fa-link"></i> 账号绑定</div>
+            <div class="bind-item"><span class="bind-label"><i class="fas fa-mobile-alt"></i> 手机号</span><span id="bindPhone" class="bind-status">未绑定</span><button class="btn-link" data-bind-type="phone">绑定</button></div>
+            <div class="bind-item"><span class="bind-label"><i class="fab fa-alipay"></i> 支付宝</span><span id="bindAlipay" class="bind-status">未绑定</span><button class="btn-link" data-bind-type="alipay">绑定</button></div>
+            <div class="bind-item"><span class="bind-label"><i class="fab fa-weixin"></i> 微信</span><span id="bindWechat" class="bind-status">未绑定</span><button class="btn-link" data-bind-type="wechat">绑定</button></div>
+            <div class="bind-item"><span class="bind-label"><i class="fas fa-id-card"></i> 校园卡</span><span id="bindCard" class="bind-status">未绑定</span><button class="btn-link" data-bind-type="card">绑定</button></div>
+        </div>
+        <div id="authSection" class="card" style="display:none;">
+            <div style="font-weight:500;"><i class="fas fa-shield-alt"></i> 身份认证</div>
+            <div class="bind-item"><span><i class="fas fa-graduation-cap"></i> 学生认证</span><button class="btn-link" id="authStudentBtn">去认证</button></div>
+            <div class="bind-item"><span><i class="fas fa-motorcycle"></i> 外卖员认证</span><button class="btn-link" id="authRiderBtn">去认证</button></div>
+            <div class="bind-item"><span><i class="fas fa-user-tie"></i> 管理员认证</span><button class="btn-link" id="authAdminBtn">去认证</button></div>
+            <div id="currentAuth" class="text-muted mt-2"></div>
+        </div>
+        <div class="logout-container">
+            <button id="logoutBtn" class="btn-logout" style="display:none;">退出登录</button>
+        </div>
+    </div>
+
+    <!-- 学生认证页面 -->
+    <div id="authStudentPage" class="page">
+        <div class="back-header"><button class="back-btn" id="backFromAuthStudent"><i class="fas fa-arrow-left"></i></button><span style="font-weight:500;">学生认证</span></div>
+        <div class="card">
+            <input type="text" id="studentSchool" class="input-field" placeholder="学校名称">
+            <input type="text" id="studentId" class="input-field" placeholder="学号">
+            <input type="text" id="studentName" class="input-field" placeholder="姓名">
+            <button class="btn" id="submitStudentAuth">提交认证</button>
+        </div>
+    </div>
+    <div id="authRiderPage" class="page">
+        <div class="back-header"><button class="back-btn" id="backFromAuthRider"><i class="fas fa-arrow-left"></i></button><span style="font-weight:500;">外卖员认证</span></div>
+        <div class="card">
+            <input type="text" id="riderPlatform" class="input-field" placeholder="所属平台（美团/饿了么等）">
+            <input type="text" id="riderNumber" class="input-field" placeholder="骑手编号">
+            <input type="text" id="riderName" class="input-field" placeholder="姓名">
+            <button class="btn" id="submitRiderAuth">提交认证</button>
+        </div>
+    </div>
+    <div id="authAdminPage" class="page">
+        <div class="back-header"><button class="back-btn" id="backFromAuthAdmin"><i class="fas fa-arrow-left"></i></button><span style="font-weight:500;">管理员认证</span></div>
+        <div class="card">
+            <input type="text" id="adminWorkId" class="input-field" placeholder="工号">
+            <input type="password" id="adminPwd" class="input-field" placeholder="管理密码">
+            <input type="text" id="adminName" class="input-field" placeholder="姓名">
+            <button class="btn" id="submitAdminAuth">提交认证</button>
+        </div>
+    </div>
+
+    <!-- 底部导航栏 -->
+    <div class="bottom-nav" id="bottomNav">
+        <div class="nav-item" data-page="home"><div class="nav-icon"><i class="fas fa-home"></i></div><span>首页</span></div>
+        <div class="nav-item" data-page="profile"><div class="nav-icon"><i class="fas fa-user"></i></div><span>我的</span></div>
+    </div>
+</div>
+
+<!-- 模态框（授权界面） -->
+<div id="authModal" class="modal-mask">
+    <div class="modal-container">
+        <div class="modal-title">授权绑定</div>
+        <div class="modal-desc" id="modalDesc">允许“智能取餐柜”获取你的账号信息？</div>
+        <div class="modal-buttons">
+            <button class="modal-btn cancel" id="modalCancel">取消</button>
+            <button class="modal-btn confirm" id="modalConfirm">确认授权</button>
+        </div>
+    </div>
+</div>
+
+<!-- 头像选择器浮层 -->
+<div id="avatarPicker" class="avatar-picker">
+    <div class="avatar-options" id="avatarOptions"></div>
+    <div class="picker-close" id="closePicker">取消</div>
+</div>
+
+<script>
+    // 所有页面ID
+    const allPages = ['splash', 'home', 'take', 'place', 'admin', 'help', 'profile', 'authStudentPage', 'authRiderPage', 'authAdminPage'];
+    
+    function showPage(pageId) {
+        allPages.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('active');
+        });
+        const target = document.getElementById(pageId);
+        if (target) target.classList.add('active');
+        
+        const bottomNav = document.getElementById('bottomNav');
+        if (pageId === 'home' || pageId === 'profile') {
+            bottomNav.style.display = 'flex';
+        } else {
+            bottomNav.style.display = 'none';
+        }
+        
+        document.querySelectorAll('.nav-item').forEach(item => {
+            const targetPage = item.getAttribute('data-page');
+            if (targetPage === pageId) item.classList.add('active');
+            else item.classList.remove('active');
+        });
+    }
+
+    setTimeout(() => showPage('home'), 2000);
+
+    // 返回按钮
+    document.getElementById('backHomeFromTake').onclick = () => showPage('home');
+    document.getElementById('backHomeFromPlace').onclick = () => showPage('home');
+    document.getElementById('backHomeFromAdmin').onclick = () => showPage('home');
+    document.getElementById('backHomeFromHelp').onclick = () => showPage('home');
+    document.getElementById('backFromAuthStudent').onclick = () => showPage('profile');
+    document.getElementById('backFromAuthRider').onclick = () => showPage('profile');
+    document.getElementById('backFromAuthAdmin').onclick = () => showPage('profile');
+
+    document.getElementById('goToHelp').onclick = () => showPage('help');
+    document.getElementById('callSupport').onclick = () => alert('投诉电话：0554-12345678\n（模拟拨号，实际可接入客服）');
+
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.onclick = () => showPage(item.getAttribute('data-page'));
+    });
+
+    // ---------- 身份与数据 ----------
+    let isLoggedIn = false;
+    let userIdentity = 'guest'; // guest, student, rider, admin
+    let userData = { 
+        name: '', 
+        phone: '', 
+        alipay: false, 
+        wechat: false, 
+        campusCard: false,
+        nickname: '点击设置昵称',
+        avatar: 'fa-user-circle'
+    };
+
+    // 头像选择器
+    const avatarIcons = ['fa-user-circle', 'fa-user-astronaut', 'fa-user-ninja', 'fa-user-graduate', 'fa-user-tie', 'fa-user-secret', 'fa-user-alt'];
+    function openAvatarPicker() {
+        const picker = document.getElementById('avatarPicker');
+        const container = document.getElementById('avatarOptions');
+        container.innerHTML = '';
+        avatarIcons.forEach(icon => {
+            const option = document.createElement('div');
+            option.className = 'avatar-option';
+            option.innerHTML = `<i class="fas ${icon}"></i>`;
+            option.onclick = () => {
+                userData.avatar = icon;
+                document.querySelector('#avatarBtn i').className = `fas ${icon}`;
+                picker.classList.remove('show');
+                showToast('头像已更换');
+            };
+            container.appendChild(option);
+        });
+        picker.classList.add('show');
+    }
+    document.getElementById('avatarBtn').onclick = () => {
+        if (isLoggedIn) openAvatarPicker();
+        else alert('请先登录');
+    };
+    document.getElementById('closePicker').onclick = () => {
+        document.getElementById('avatarPicker').classList.remove('show');
+    };
+    // 点击遮罩关闭
+    document.getElementById('avatarPicker').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('avatarPicker')) {
+            document.getElementById('avatarPicker').classList.remove('show');
+        }
+    });
+
+    // 修改昵称
+    document.getElementById('nicknameDisplay').addEventListener('click', () => {
+        if (!isLoggedIn) { alert('请先登录'); return; }
+        let newName = prompt('请输入新昵称', userData.nickname === '点击设置昵称' ? '' : userData.nickname);
+        if (newName && newName.trim()) {
+            userData.nickname = newName.trim();
+            document.getElementById('nicknameDisplay').innerText = userData.nickname;
+            updateProfileUI();
+        }
+    });
+
+    function updateHomeEntries() {
+        const container = document.getElementById('entryContainer');
+        if (!container) return;
+        let entries = [];
+        if (userIdentity === 'student') {
+            entries.push({ id: 'goToTake', icon: '<i class="fas fa-utensils"></i>', title: '取餐', desc: '扫码/输码 · 一键开柜' });
+        } else if (userIdentity === 'rider') {
+            entries.push({ id: 'goToPlace', icon: '<i class="fas fa-motorcycle"></i>', title: '放餐', desc: '扫码登录 · 分配格子' });
+        } else if (userIdentity === 'admin') {
+            entries.push({ id: 'goToTake', icon: '<i class="fas fa-utensils"></i>', title: '取餐', desc: '扫码/输码 · 一键开柜' });
+            entries.push({ id: 'goToAdmin', icon: '<i class="fas fa-chalkboard-user"></i>', title: '管理员入口', desc: '格子监控 · 远程开门' });
+        } else {
+            entries.push({ id: 'goToTake', icon: '<i class="fas fa-utensils"></i>', title: '取餐', desc: '扫码/输码 · 一键开柜' });
+        }
+        container.innerHTML = '';
+        entries.forEach(entry => {
+            const card = document.createElement('div');
+            card.className = 'entry-card';
+            card.id = entry.id;
+            card.innerHTML = `<div class="entry-icon">${entry.icon}</div>
+                              <div class="entry-text"><div class="entry-title">${entry.title}</div><div class="entry-desc">${entry.desc}</div></div>
+                              <div class="arrow"><i class="fas fa-chevron-right"></i></div>`;
+            container.appendChild(card);
+        });
+        if (document.getElementById('goToTake')) document.getElementById('goToTake').onclick = () => showPage('take');
+        if (document.getElementById('goToPlace')) document.getElementById('goToPlace').onclick = () => showPage('place');
+        if (document.getElementById('goToAdmin')) document.getElementById('goToAdmin').onclick = () => showPage('admin');
+    }
+
+    function updateProfileUI() {
+        const loginSec = document.getElementById('loginSection');
+        const bindSec = document.getElementById('bindSection');
+        const authSec = document.getElementById('authSection');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const greetingName = document.getElementById('greetingName');
+        const userIdentityTag = document.getElementById('userIdentityTag');
+        const nicknameDisplay = document.getElementById('nicknameDisplay');
+
+        if (isLoggedIn) {
+            loginSec.style.display = 'none';
+            bindSec.style.display = 'block';
+            authSec.style.display = 'block';
+            logoutBtn.style.display = 'block';
+            nicknameDisplay.innerText = userData.nickname;
+            document.querySelector('#avatarBtn i').className = `fas ${userData.avatar}`;
+            
+            document.getElementById('bindPhone').innerText = userData.phone || '未绑定';
+            document.getElementById('bindAlipay').innerText = userData.alipay ? '已绑定' : '未绑定';
+            document.getElementById('bindWechat').innerText = userData.wechat ? '已绑定' : '未绑定';
+            document.getElementById('bindCard').innerText = userData.campusCard ? '已绑定' : '未绑定';
+            let identityText = '';
+            if (userIdentity === 'student') identityText = '学生认证';
+            else if (userIdentity === 'rider') identityText = '外卖员认证';
+            else if (userIdentity === 'admin') identityText = '管理员认证';
+            else identityText = '未认证';
+            document.getElementById('currentAuth').innerHTML = `当前身份：${identityText}`;
+            greetingName.innerText = `你好，${userData.nickname !== '点击设置昵称' ? userData.nickname : (userData.name || '用户')}`;
+            if (userIdentity === 'student') userIdentityTag.innerText = '学生 · 信用分98';
+            else if (userIdentity === 'rider') userIdentityTag.innerText = '外卖员 · 信用分100';
+            else if (userIdentity === 'admin') userIdentityTag.innerText = '管理员 · 信用分100';
+            else userIdentityTag.innerText = '请认证身份';
+        } else {
+            loginSec.style.display = 'block';
+            bindSec.style.display = 'none';
+            authSec.style.display = 'none';
+            logoutBtn.style.display = 'none';
+            nicknameDisplay.innerText = '未登录';
+            document.querySelector('#avatarBtn i').className = 'fas fa-user-circle';
+            greetingName.innerText = '你好，游客';
+            userIdentityTag.innerText = '请登录后认证身份';
+        }
+        updateHomeEntries();
+    }
+
+    // 登录
+    document.getElementById('doLogin').onclick = () => {
+        const phone = document.getElementById('loginPhone').value.trim();
+        if (!phone) { alert('请输入手机号'); return; }
+        isLoggedIn = true;
+        userData.name = phone.slice(-4);
+        userData.phone = phone;
+        userData.nickname = '用户' + phone.slice(-4);
+        userIdentity = 'guest';
+        updateProfileUI();
+        showToast('登录成功');
+    };
+    document.getElementById('logoutBtn').onclick = () => {
+        isLoggedIn = false;
+        userIdentity = 'guest';
+        userData = { name: '', phone: '', alipay: false, wechat: false, campusCard: false, nickname: '点击设置昵称', avatar: 'fa-user-circle' };
+        updateProfileUI();
+        showToast('已退出');
+    };
+
+    // 绑定授权模态框
+    let pendingBindType = null;
+    function showBindModal(type) {
+        pendingBindType = type;
+        document.getElementById('modalDesc').innerText = `允许“智能取餐柜”获取你的${type === 'phone' ? '手机号' : (type === 'alipay' ? '支付宝账号' : (type === 'wechat' ? '微信账号' : '校园卡信息'))}？`;
+        document.getElementById('authModal').style.display = 'flex';
+    }
+    document.getElementById('modalCancel').onclick = () => {
+        document.getElementById('authModal').style.display = 'none';
+        pendingBindType = null;
+    };
+    document.getElementById('modalConfirm').onclick = () => {
+        if (pendingBindType) {
+            if (pendingBindType === 'phone') {
+                let newPhone = prompt('请输入手机号', userData.phone || '');
+                if (newPhone) userData.phone = newPhone;
+            } else if (pendingBindType === 'alipay') userData.alipay = true;
+            else if (pendingBindType === 'wechat') userData.wechat = true;
+            else if (pendingBindType === 'card') userData.campusCard = true;
+            updateProfileUI();
+            showToast('绑定成功');
+        }
+        document.getElementById('authModal').style.display = 'none';
+        pendingBindType = null;
+    };
+    document.querySelectorAll('.btn-link[data-bind-type]').forEach(btn => {
+        btn.onclick = () => { if(isLoggedIn) showBindModal(btn.getAttribute('data-bind-type')); else alert('请先登录'); };
+    });
+
+    document.getElementById('authStudentBtn').onclick = () => { if(isLoggedIn) showPage('authStudentPage'); else alert('请先登录'); };
+    document.getElementById('authRiderBtn').onclick = () => { if(isLoggedIn) showPage('authRiderPage'); else alert('请先登录'); };
+    document.getElementById('authAdminBtn').onclick = () => { if(isLoggedIn) showPage('authAdminPage'); else alert('请先登录'); };
+
+    document.getElementById('submitStudentAuth').onclick = () => {
+        const school = document.getElementById('studentSchool').value.trim();
+        const sid = document.getElementById('studentId').value.trim();
+        const name = document.getElementById('studentName').value.trim();
+        if(!school || !sid || !name) { alert('请填写完整'); return; }
+        userIdentity = 'student';
+        userData.name = name;
+        if (userData.nickname === '点击设置昵称') userData.nickname = name;
+        updateProfileUI();
+        showToast('学生认证成功');
+        showPage('profile');
+    };
+    document.getElementById('submitRiderAuth').onclick = () => {
+        const platform = document.getElementById('riderPlatform').value.trim();
+        const num = document.getElementById('riderNumber').value.trim();
+        const name = document.getElementById('riderName').value.trim();
+        if(!platform || !num || !name) { alert('请填写完整'); return; }
+        userIdentity = 'rider';
+        userData.name = name;
+        if (userData.nickname === '点击设置昵称') userData.nickname = name;
+        updateProfileUI();
+        showToast('外卖员认证成功');
+        showPage('profile');
+    };
+    document.getElementById('submitAdminAuth').onclick = () => {
+        const wid = document.getElementById('adminWorkId').value.trim();
+        const pwd = document.getElementById('adminPwd').value.trim();
+        const name = document.getElementById('adminName').value.trim();
+        if(!wid || !pwd || !name) { alert('请填写完整'); return; }
+        userIdentity = 'admin';
+        userData.name = name;
+        if (userData.nickname === '点击设置昵称') userData.nickname = name;
+        updateProfileUI();
+        showToast('管理员认证成功');
+        showPage('profile');
+    };
+
+    function showToast(msg) {
+        let t = document.createElement('div');
+        t.className = 'toast-message';
+        t.innerText = msg;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 1500);
+    }
+
+    // 取餐功能
+    document.getElementById('takeScanBtn')?.addEventListener('click', () => showToast('扫码成功！格子A-03已开'));
+    document.getElementById('takeCodeOpen')?.addEventListener('click', () => showToast('取餐码验证通过，格子已开'));
+
+    let placeLoggedIn = false;
+    document.getElementById('placeLoginBtn')?.addEventListener('click', () => {
+        placeLoggedIn = true;
+        document.getElementById('placeLoginStatus').innerText = '已登录';
+        document.getElementById('placePutCard').style.opacity = '1';
+        document.getElementById('placePutCard').style.pointerEvents = 'auto';
+        showToast('登录成功');
+    });
+    document.getElementById('placePutBtn')?.addEventListener('click', () => {
+        if (!placeLoggedIn) { showToast('请先登录'); return; }
+        const phone = document.getElementById('placePhoneInput').value.trim();
+        if (!phone || phone.length !== 4) { showToast('请输入4位尾号'); return; }
+        const grid = 'A-' + (Math.floor(Math.random() * 12) + 1);
+        document.getElementById('placeResult').innerHTML = `✅ 已分配格子 ${grid}`;
+        showToast(`格子${grid}已开`);
+    });
+
+    const adminGrids = [
+        { id: 'A-01', status: 'free' }, { id: 'A-02', status: 'occupied' }, { id: 'A-03', status: 'occupied' }, { id: 'A-04', status: 'free' },
+        { id: 'B-01', status: 'free' }, { id: 'B-02', status: 'occupied' }, { id: 'B-03', status: 'free' }, { id: 'B-04', status: 'overdue' },
+        { id: 'C-01', status: 'occupied' }, { id: 'C-02', status: 'free' }, { id: 'C-03', status: 'occupied' }, { id: 'C-04', status: 'free' },
+        { id: 'D-01', status: 'free' }, { id: 'D-02', status: 'overdue' }, { id: 'D-03', status: 'occupied' }, { id: 'D-04', status: 'free' }
+    ];
+    function renderAdminGrids() {
+        const container = document.getElementById('gridStatus');
+        if (!container) return;
+        container.innerHTML = '';
+        adminGrids.forEach(g => {
+            const cell = document.createElement('div');
+            cell.className = `grid-cell ${g.status}`;
+            cell.innerText = `${g.id}\n${g.status === 'occupied' ? '占用' : (g.status === 'overdue' ? '超时' : '空闲')}`;
+            container.appendChild(cell);
+        });
+    }
+    renderAdminGrids();
+    document.getElementById('forceOpenB7')?.addEventListener('click', () => showToast('强制打开B-07'));
+    document.getElementById('forceOpenD11')?.addEventListener('click', () => showToast('强制打开D-11'));
+    document.getElementById('viewRecordsBtn')?.addEventListener('click', () => alert('开门记录详情：\n14:23 格子A-03 输错密码3次\n13:50 格子C-09 门未关好报警'));
+    document.getElementById('cleanMarkBtn')?.addEventListener('click', () => showToast('已标记清洁'));
+
+    document.querySelectorAll('.faq-question').forEach(q => {
+        q.onclick = () => {
+            const ans = document.getElementById(q.getAttribute('data-answer'));
+            ans.classList.toggle('show');
+            const arrow = q.querySelector('span');
+            if (arrow) arrow.innerHTML = ans.classList.contains('show') ? '▲' : '▼';
+        };
+    });
+    document.getElementById('askAI')?.addEventListener('click', () => {
+        const question = document.getElementById('userQuestion').value.trim();
+        const ansDiv = document.getElementById('aiAnswer');
+        if (!question) {
+            ansDiv.style.display = 'block';
+            ansDiv.innerHTML = '🤖 请输入问题';
+            return;
+        }
+        let answer = '';
+        if (question.includes('取餐码')) answer = '取餐码可在订单详情查看或短信找回。';
+        else if (question.includes('超时')) answer = '免费2小时，超时收费。';
+        else if (question.includes('拿错')) answer = '请拨打投诉电话，调取监控。';
+        else if (question.includes('信用')) answer = '信用分低于60需押金，高分有优惠。';
+        else answer = '请参考常见问题或联系客服。';
+        ansDiv.style.display = 'block';
+        ansDiv.innerHTML = `🤖 ${answer}`;
+    });
+
+    updateHomeEntries();
+</script>
+</body>
+</html>
